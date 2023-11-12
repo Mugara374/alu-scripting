@@ -1,33 +1,32 @@
 #!/usr/bin/python3
 """ module for function to return top 10 hot posts of a given subreddit """
 import requests
-import sys
-after = None
 
-
-def recurse(subreddit, hot_list=[]):
-    """     Args:
+def recurse(subreddit, hot_list=[], after=None):
+    """ Args:
         subreddit: subreddit name
         hot_list: list of hot titles in subreddit
         after: last hot_item appended to hot_list
     Returns:
         a list containing the titles of all hot articles for the subreddit
         or None if queried subreddit is invalid """
-    global after
+    
     headers = {'User-Agent': 'xica369'}
-    url = "https://www.reddit.com/r/{}/hot.json".format(subreddit)
-    parameters = {'after': after}
-    response = requests.get(url, headers=headers, allow_redirects=False,
-                            params=parameters)
+    url = f"https://www.reddit.com/r/{subreddit}/hot.json"
+    parameters = {'after': after} if after else {}
+    
+    response = requests.get(url, headers=headers, params=parameters)
 
     if response.status_code == 200:
-        next_ = response.json().get('data').get('after')
-        if next_ is not None:
-            after = next_
-            recurse(subreddit, hot_list)
-        list_titles = response.json().get('data').get('children')
-        for title_ in list_titles:
-            hot_list.append(title_.get('data').get('title'))
+        data = response.json().get('data')
+        next_after = data.get('after')
+        
+        if next_after:
+            recurse(subreddit, hot_list, after=next_after)
+        
+        list_titles = data.get('children')
+        hot_list.extend(title_['data']['title'] for title_ in list_titles)
         return hot_list
     else:
-        return (None)
+        return None
+
